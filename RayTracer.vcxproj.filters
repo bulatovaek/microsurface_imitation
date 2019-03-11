@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="imageIO.cpp">
+      <Filter>image</Filter>
+    </ClCompile>
+    <ClCompile Include="render.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="texture.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="microfacet.cpp">
+      <Filter>microfacet</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="constants.h" />
+    <ClInclude Include="Ray.h" />
+    <ClInclude Include="object.h">
+      <Filter>objects</Filter>
+    </ClInclude>
+    <ClInclude Include="plane.h">
+      <Filter>objects</Filter>
+    </ClInclude>
+    <ClInclude Include="image.h">
+      <Filter>image</Filter>
+    </ClInclude>
+    <ClInclude Include="imageIO.h">
+      <Filter>image</Filter>
+    </ClInclude>
+    <ClInclude Include="render.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="sphere.h">
+      <Filter>objects</Filter>
+    </ClInclude>
+    <ClInclude Include="texture.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="microfacet.h">
+      <Filter>microfacet</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="objects">
+      <UniqueIdentifier>{95e0a213-016d-4b55-afe3-fa62b7708fd6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="image">
+      <UniqueIdentifier>{9af69cf7-875b-45a1-9f62-a7d9de47c097}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="render">
+      <UniqueIdentifier>{56aec3bc-75c0-4dbd-b18a-d274423cbeef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="texture">
+      <UniqueIdentifier>{f623aa8d-bfad-4823-ac26-8f460c640de1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="microfacet">
+      <UniqueIdentifier>{b7435a22-f6cc-4960-9476-ebfb802d0e8d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

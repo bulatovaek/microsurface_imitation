@@ -13,7 +13,7 @@ void displacementFunction(const struct RTCDisplacementFunctionNArguments* args)
 	unsigned int N = args->N;
 
 	if(!t.isLoaded())
-		t = Texture("textures/brick/brick_depth3.bmp", PLANAR, false);
+		t = Texture("textures/brick/brick_depth2.bmp", PLANAR, false);
 
 	int w = t.getWidth();
 	int h = t.getHeight();

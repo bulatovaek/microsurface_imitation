@@ -1,47 +1,5 @@
 #include "render.h"
 
-static int count = 0;
-
-glm::vec3 RandomCosineVectorOf(glm::vec3 normal){
-	float x, y, z, cosTheta, sinTheta, phi;
-	int e = COS_POW;
-	glm::vec3 sphereVec, cosineVec;
-	float t = 0;
-	normal = glm::normalize(normal);
-	do{
-		sphereVec = glm::normalize(glm::sphericalRand(1.0f));
-	} while (glm::abs(glm::angle(glm::normalize(sphereVec), glm::normalize(normal))) > 90.0f);
-	return sphereVec;
-}
-
-/*glm::vec3 RandomCosineVectorOf(glm::vec3 normal){
-	float x, y, z, cosTheta, sinTheta;
-	int e = 2.0f;
-	glm::vec3 sphereVec, cosineVec;
-	float t = 0;
-	normal = glm::normalize(normal);
-	do{
-		float r1 = (rand() % 100 + 1) / 100.0f;
-		float r2 = (rand() % 100 + 1) / 100.0f;
-		//std::cout << "r1 = " << r1 << ", r2 = "<< r2 <<"\n";
-		float phi = 2 * PI * r1;
-		cosTheta = glm::pow((1 - r2), 1.0f / (e + 1.0f));
-		sinTheta = glm::sqrt(1 - cosTheta * cosTheta);
-
-		x = glm::cos(phi) * sinTheta;
-		y = glm::sin(phi) * sinTheta;
-		z = cosTheta;
-		cosineVec = glm::normalize(glm::vec3(x, y, z));
-		//sphereVec = glm::normalize(glm::sphericalRand(1.0f));
-		//t++;
-		/*if (glm::angle(cosineVec, normal) < 90 && glm::angle(cosineVec, normal) > 0 )*/
-		//std::cout << glm::angle(cosineVec, normal) << " woop\n";
-	/*} while (glm::abs(glm::angle(cosineVec, normal)) >= 90.0f);
-	std::cout << "woop\n";
-	//return sphereVec /*sphereVec*/;
-	/*return cosineVec;
-} */
-
 float rcp(const float x)
 {
 	const __m128 a = _mm_set_ss(x);
@@ -54,23 +12,21 @@ void renderTileStandard(MyImage* img, RTCScene g_scene, std::vector<Object*> &sc
 {
 	time_t start, stop;
 	time(&start);
-	std::cout << "MICROFACET - " << MICROFACET_ON << "\n";
 	std::cout << "Start rendering\n"; 
-	for (unsigned int y = 0; y< img->width; y++) for (unsigned int x = 0; x< img->height; x++)
+#pragma omp parallel for    // OpenMP
+	for ( int y = 0; y< img->width; y++) for ( int x = 0; x< img->height; x++)
 	{
-		//printf("x - %d, y - %d\n", x, y);
 		/* calculate pixel color */
-		glm::vec3 color = renderPixelStandard((float)x, (float)y, img->height, img->width, g_scene, scene_objects);
-		float r = glm::pow(color.x, 1.0f / 2.2f);
-		float g = glm::pow(color.y, 1.0f / 2.2f);
-		float b = glm::pow(color.z, 1.0f / 2.2f);
-		r = 255.f * glm::clamp(r, 0.0f, 1.0f);
-		g = 255.f * glm::clamp(g, 0.0f, 1.0f);
-		b = 255.f * glm::clamp(b, 0.0f, 1.0f);
+		unsigned short Xi[3] = { 0,0,y*y*y };
+		glm::vec3 color = renderPixelStandard((float)x, (float)y, img->height, img->width, g_scene, scene_objects, Xi);
+		float r = glm::clamp(color.x, 0.0f, 1.0f);
+		float g = glm::clamp(color.y, 0.0f, 1.0f); 
+		float b = glm::clamp(color.z, 0.0f, 1.0f);
+		r = 255.f * glm::pow(r, 1.0f / 2.2f);
+		g = 255.f * glm::pow(g, 1.0f / 2.2f);
+		b = 255.f * glm::pow(b, 1.0f / 2.2f);
 		img->pixels[y* img->width + x] = glm::vec3(r, g, b);
-
 	}
-
 	time(&stop);
 	double diff = difftime(stop, start);
 	int hrs = (int)diff / 3600;
@@ -80,10 +36,10 @@ void renderTileStandard(MyImage* img, RTCScene g_scene, std::vector<Object*> &sc
 }
 
 /** Render One Pixel **/
-glm::vec3 renderPixelStandard(float x, float y, float h, float w, RTCScene g_scene, std::vector<Object*> &scene_objects)
+glm::vec3 renderPixelStandard(float x, float y, float h, float w, RTCScene g_scene, std::vector<Object*> &scene_objects, unsigned short* Xi)
 {
 	float theta = -PI / 6;
-	glm::vec3 camera_p = glm::vec3(0, 0.1, 0.1);
+	glm::vec3 camera_p = glm::vec3(0, 0, 3.f);
 	glm::vec3 camera_dir = glm::vec3(0, 0, 1);
 
 	glm::vec3 direction;
@@ -105,15 +61,21 @@ glm::vec3 renderPixelStandard(float x, float y, float h, float w, RTCScene g_sce
 	origin_ray.mask = -1;
 
 	glm::vec3 color = glm::vec3(0.0f);
+	glm::vec3 current_color = glm::vec3(0.0f);
 
 	for (int a = 0; a < SAMPLES; a++){
-		color = color + traceRay(g_scene, origin_ray, 0, scene_objects, 0);
+		//color = color + traceRay(g_scene, origin_ray, 0, scene_objects, 0, Xi);
+		current_color = traceRay(g_scene, origin_ray, 0, scene_objects, 0, Xi);
+		//current_color.x = glm::clamp(current_color.x, 0.0f, 1.0f);
+		//current_color.y = glm::clamp(current_color.y, 0.0f, 1.0f);
+		//current_color.z = glm::clamp(current_color.z, 0.0f, 1.0f);
+		color = color + current_color;
 	}
 
 	return color * (1.f / SAMPLES);
 }
 
-glm::vec3 traceRay(RTCScene g_scene, RTCRay &ray, int depth, std::vector<Object*> &scene_objects, int prev_geom_id)
+glm::vec3 traceRay(RTCScene g_scene, RTCRay &ray, int depth, std::vector<Object*> &scene_objects, int prev_geom_id, unsigned short *Xi)
 {
 	if (depth == MAX_DEPTH)
 	{
@@ -134,101 +96,104 @@ glm::vec3 traceRay(RTCScene g_scene, RTCRay &ray, int depth, std::vector<Object*
 		return glm::vec3(0, 0, 0);
 	}
 
-	if (scene_objects[rayhit.hit.geomID]->type == EMIT)
+
+	if (scene_objects[rayhit.hit.geomID]->material.isLight())
 	{
 		glm::vec3 dir = glm::normalize( glm::vec3(ray.dir_x, ray.dir_y, ray.dir_z));
 		if (glm::abs(glm::angle(dir, glm::vec3(0, -1, 0))) > 90.f)
-			return scene_objects[rayhit.hit.geomID]->emission;
+			return scene_objects[rayhit.hit.geomID]->material.getEmission();
 		else
 			return glm::vec3(0, 0, 0);
 	}
-	else if (scene_objects[rayhit.hit.geomID]->type == DIFF)
+
+	glm::vec3 normal = -glm::normalize(glm::vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+	float tfar = rayhit.ray.tfar;
+	float tnear = rayhit.ray.tnear;
+	glm::vec3 origin = glm::vec3(rayhit.ray.org_x , rayhit.ray.org_y , rayhit.ray.org_z );
+	glm::vec3 direction = glm::normalize(glm::vec3(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z));
+	glm::vec3 point = origin + tfar * direction;
+	glm::vec3 color = scene_objects[rayhit.hit.geomID]->color;
+	glm::vec3 old_normal = normal;
+
+	glm::vec3 diffuse_color;
+
+	float last_depth;
+	glm::vec2 texCoord;
+	if (scene_objects[rayhit.hit.geomID]->normalmap.isLoaded() && scene_objects[rayhit.hit.geomID]->normalmap.isUsingNormalMap())
 	{
-		glm::vec3 normal = -glm::normalize(glm::vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
-		float tfar = rayhit.ray.tfar;
-		glm::vec3 origin = glm::vec3(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z);
-		glm::vec3 direction = glm::normalize(glm::vec3(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z));
-		glm::vec3 point = origin + tfar * direction;
-		glm::vec3 color = scene_objects[rayhit.hit.geomID]->color;
-
-		if (glm::abs(glm::angle(direction, normal)) < 90.f)
-			return glm::vec3(0, 0, 0);
-
-
-		/* Lambert BRDF */
-		float BRDF_DIFF = scene_objects[rayhit.hit.geomID]->reflectance / PI;
-		glm::vec3 diffuse_reflection = glm::normalize(RandomCosineVectorOf(normal) + EPS * normal);
-		float cosTheta_DIFF = glm::dot(diffuse_reflection, normal);
-		float PDF_DIFF = cosTheta_DIFF / PI;
-
-		RTCRay newray;
-		newray.dir_x = diffuse_reflection.x;
-		newray.dir_y = diffuse_reflection.y;
-		newray.dir_z = diffuse_reflection.z;
-		newray.org_x = point.x;
-		newray.org_y = point.y;
-		newray.org_z = point.z;
-		newray.tnear = ZERO + 10*EPS;
-		newray.tfar = INF;
-		newray.time = ZERO;
-		newray.mask = -1;
-
-		return BRDF_DIFF / PDF_DIFF * cosTheta_DIFF * color * traceRay(g_scene, newray, depth + 1, scene_objects, rayhit.hit.geomID);
+		normal = 
+			scene_objects[rayhit.hit.geomID]->getNormalByNormalMap(point, &texCoord, 
+				normal, direction, &diffuse_color, rayhit.hit.primID, &last_depth);
 	}
-	else if (scene_objects[rayhit.hit.geomID]->type == SPEC)
+
+	if (scene_objects[rayhit.hit.geomID]->diffusemap.isLoaded())
 	{
-		glm::vec3 normal = -glm::normalize(glm::vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
-		glm::vec3 old_normal = normal;
-		float tfar = rayhit.ray.tfar;
-		glm::vec3 origin = glm::vec3(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z);
-		glm::vec3 direction = glm::normalize(glm::vec3(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z));
-		glm::vec3 point = origin + tfar * direction;
-		glm::vec3 color = scene_objects[rayhit.hit.geomID]->color;
-
-		if (glm::abs(glm::angle(direction, normal)) < 90.f)
-			return glm::vec3(0, 0, 0);
-
-		if (scene_objects[rayhit.hit.geomID]->texture.isLoaded() && scene_objects[rayhit.hit.geomID]->texture.isUsingNormalMap())
-		{
-			normal = scene_objects[rayhit.hit.geomID]->getNormalByNormalMap(point, normal);
-		}
-
-		glm::vec3 specular_reflection = glm::normalize(direction - normal * 2.0f * glm::dot(normal, direction) + 10 * EPS * normal );
-		
-		/* Phong BRDF */
-
-		float cosTheta_SPEC = glm::abs(glm::dot(glm::normalize(RandomCosineVectorOf(normal)), specular_reflection));
-		float BRDF_SPEC = scene_objects[rayhit.hit.geomID]->reflectance * (COS_POW + 2.0f) / (2 * PI) * glm::pow(cosTheta_SPEC, (float)COS_POW);
-		float PDF_SPEC = (COS_POW + 1.0f) / (2 * PI) * glm::pow(cosTheta_SPEC, (float)COS_POW);
-
-		float BRDF_MICROFACET = 0.0f;
-
-		if (MICROFACET_ON){
-			glm::vec3 wp = normal;
-			glm::vec3 n = old_normal;
-			glm::vec3 wi = direction;
-			glm::vec3 wo = specular_reflection;
-			glm::vec3 wt = w_t(wp, n);
-			glm::vec3 current_normal;
-			BRDF_MICROFACET = glm::abs(getMicrofacetBRDF(wi, wp, wt, wo, n, BRDF_SPEC));
-			BRDF_SPEC = BRDF_MICROFACET;
-			specular_reflection = getReflectedMicrosurfaceRay(wi, wp, wt, n, &current_normal);
-			PDF_SPEC = 1.f;
-			cosTheta_SPEC = 1.f;
-		} 
-
-		RTCRay newray;
-		newray.dir_x = specular_reflection.x;
-		newray.dir_y = specular_reflection.y;
-		newray.dir_z = specular_reflection.z;
-		newray.org_x = point.x;
-		newray.org_y = point.y;
-		newray.org_z = point.z;
-		newray.tnear = ZERO + 10*EPS;
-		newray.tfar = INF;
-		newray.time = ZERO;
-		newray.mask = -1;
-
-		return BRDF_SPEC / PDF_SPEC * cosTheta_SPEC * color * traceRay(g_scene, newray, depth + 1, scene_objects, rayhit.hit.geomID);
+		color = diffuse_color;
 	}
+
+
+	float cosTheta = scene_objects[rayhit.hit.geomID]->material.getCosTheta(direction, normal, Xi);
+	float PDF = scene_objects[rayhit.hit.geomID]->material.getPDF(direction, normal, cosTheta);
+	float BRDF = scene_objects[rayhit.hit.geomID]->material.getBRDF(direction, normal, cosTheta);
+	glm::vec3 reflection_dir = scene_objects[rayhit.hit.geomID]->material.getReflectedRay(direction, normal, Xi);
+
+	if (PDF < EPS) PDF = EPS;
+
+	if (scene_objects[rayhit.hit.geomID]->material.useMicrofacet()) {
+		glm::vec3 wp = normal;
+		glm::vec3 n = old_normal;
+		glm::vec3 wi = direction;
+		glm::vec3 wo = reflection_dir;
+		glm::vec3 wt = w_t(wp, n);
+		glm::vec3 current_normal;
+		float BRDF_MICROFACET = glm::abs(getMicrofacetBRDF(wi, wp, wt, wo, n, &scene_objects[rayhit.hit.geomID]->material, Xi));
+		BRDF = BRDF_MICROFACET;
+		reflection_dir = glm::normalize(getReflectedMicrosurfaceRay(wi, wp, wt, n, &current_normal) + EPS * normal);
+		float PDF_MICROFACET = glm::abs(getMicrofacetPDF(wi, wp, wt, wo, n, &scene_objects[rayhit.hit.geomID]->material, Xi)); 
+		PDF = PDF_MICROFACET;
+		if (PDF_MICROFACET < EPS) PDF =  EPS;
+		cosTheta = 1.f;
+	}
+
+	if (scene_objects[rayhit.hit.geomID]->heightmap.isLoaded())
+	{
+		float selfShadowing = 0.0f;
+
+		glm::vec3 tangent = glm::cross(old_normal, glm::vec3(1, 0, 0));
+		if (!glm::length(tangent))
+			tangent = glm::cross(old_normal, glm::vec3(0, 1, 0));
+		if (!glm::length(tangent))
+			tangent = glm::cross(old_normal, glm::vec3(0, 0, 1));
+
+		tangent = glm::normalize(tangent);
+
+		glm::vec3 bitangent = glm::cross(old_normal, tangent);
+
+		bitangent = glm::normalize(bitangent);
+
+		glm::mat3x3 TBN(tangent, bitangent, old_normal);
+		glm::mat3x3 transTBN = glm::transpose(TBN);
+		glm::vec3 inLightDir = glm::normalize(glm::vec3(-0.0f, 1.99f, -5.5f) - point); // light position
+		//printf("depth %f\n", last_depth);
+		float coof = 1.0f;
+
+		selfShadowing = scene_objects[rayhit.hit.geomID]->getParallaxSelfShadow(texCoord, glm::normalize(transTBN * inLightDir), last_depth);
+
+		color = selfShadowing * color  ;
+	} 
+
+	RTCRay newray;
+	newray.dir_x = reflection_dir.x;
+	newray.dir_y = reflection_dir.y;
+	newray.dir_z = reflection_dir.z;
+	newray.org_x = point.x;
+	newray.org_y = point.y;
+	newray.org_z = point.z;
+	newray.tnear = ZERO + EPS;
+	newray.tfar = INF;
+	newray.time = ZERO;
+	newray.mask = -1;
+
+	return BRDF / PDF * cosTheta * color * traceRay(g_scene, newray, depth + 1, scene_objects, rayhit.hit.geomID, Xi);
+
 }

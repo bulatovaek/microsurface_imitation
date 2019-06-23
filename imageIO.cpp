@@ -67,7 +67,7 @@ MyImage loadImageFromFile(std::string fileName){
 	{
 		for (j = 0; j < width; j++)
 		{
-			COLORREF pixel = image.GetPixel(j, i);
+			COLORREF pixel = image.GetPixel(j, height - i - 1);
 			glm::vec3 color = glm::vec3(GetRValue(pixel), GetGValue(pixel), GetBValue(pixel));
 			res.pixels[textureDisplacement + j] = color / 255.0f;
 		}

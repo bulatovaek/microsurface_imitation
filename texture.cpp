@@ -18,6 +18,11 @@ glm::vec3 Texture::getPixelByXY(unsigned x, unsigned y) const {
 		return (glm::vec3(1, 1, 1));
 
 	float r, g, b;
+	if (y >= width)
+		y = (int)y % width;
+	if (x >= height)
+		x = (int)x % height;
+
 	r = texture.pixels[y * width + x][0];// / 255.0f;
 	g = texture.pixels[y * width + x][1];// / 255.0f;
 	b = texture.pixels[y * width + x][2];// / 255.0f;
@@ -30,8 +35,13 @@ glm::vec3 Texture::getPixelByUV(double u, double v) const {
 	if (!loaded)
 		return (glm::vec3(1, 0, 1));
 
+	if (u < 0) u += 1.0f;
+	if (v < 0) v += 1.0f;
 	int x = (fmod(fabs(u), 1.0)) * (width - 1);
-	int y = (1. - fmod(fabs(v), 1.0)) * (height - 1);
+	int y = (/*1. - */fmod(fabs(v), 1.0)) * (height - 1);
+
+	//x = (int)glm::clamp((float)u, 0.0f, 1.0f) * (height - 1);
+	//y = (int)glm::clamp((float)v, 0.0f, 1.0f) * (width - 1);
 	//printf("%f, %f\n", u, v);
 	double r, g, b;
 	try {

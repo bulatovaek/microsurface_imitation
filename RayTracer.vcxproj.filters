@@ -14,6 +14,12 @@
     <ClCompile Include="microfacet.cpp">
       <Filter>microfacet</Filter>
     </ClCompile>
+    <ClCompile Include="material.cpp">
+      <Filter>material</Filter>
+    </ClCompile>
+    <ClCompile Include="displacement.cpp">
+      <Filter>displacement</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="constants.h" />
@@ -42,6 +48,15 @@
     <ClInclude Include="microfacet.h">
       <Filter>microfacet</Filter>
     </ClInclude>
+    <ClInclude Include="material.h">
+      <Filter>material</Filter>
+    </ClInclude>
+    <ClInclude Include="displacement.h">
+      <Filter>displacement</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>objects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="objects">
@@ -58,6 +73,12 @@
     </Filter>
     <Filter Include="microfacet">
       <UniqueIdentifier>{b7435a22-f6cc-4960-9476-ebfb802d0e8d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="material">
+      <UniqueIdentifier>{3b2981cf-6641-47ad-92a3-a73ffdb89e63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="displacement">
+      <UniqueIdentifier>{e9b4e158-7cff-4287-9ced-cbc7ed25c0fa}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
